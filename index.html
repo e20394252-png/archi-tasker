@@ -235,10 +235,9 @@ function bind() {
       e.stopPropagation();
       e.preventDefault();
       const c = state.categories.find(x => x.id === el.dataset.delCat);
-      if (c && confirm(`Удалить категорию «${c.name}» со всеми задачами?`)) {
-        await api(`/categories/${c.id}`, { method: 'DELETE' });
-        await load();
-      }
+      if (!c) return;
+      await api(`/categories/${c.id}`, { method: 'DELETE' });
+      await load();
     });
   });
   document.querySelectorAll('[data-toggle]').forEach(el => {

@@ -1,108 +1,36 @@
-# Archi Tasker — Текущее состояние и проблемы
+# Archi Tasker — Текущее состояние
 
 ## Архитектура
 
 ### Фронтенд (index.html)
-- Ванильный JavaScript без фреймворков
-- API запросы через fetch к `/api/*`
-- Drag-and-drop для сортировки задач (рабочий стол)
-- Кнопки ▲▼ для сортировки задач (мобильные)
-- Модальное окно для редактирования задач
-- Адаптивные стили для мобильных (media queries)
+- Ванильный JavaScript, `fetch` → `/api/*`
+- Drag-and-drop (десктоп), ▲▼ (мобильные), модалка редактирования
 
 ### Бэкенд (server.js)
-- Node.js + Express
-- Порт: 8000
-- Данные: `/app/data/data.json` (volume в Docker)
-- API endpoints:
-  - `GET /api/state` — получить все данные
-  - `POST /api/categories` — создать категорию
-  - `DELETE /api/categories/:id` — удалить категорию
-  - `POST /api/tasks` — создать задачу
-  - `PATCH /api/tasks/:id` — обновить задачу (status, name, description)
-  - `DELETE /api/tasks/:id` — удалить задачу
-  - `POST /api/reorder` — изменить порядок задач
-- Аутентификация: Bearer token для write операций (для Grok агентов)
+- Node.js + Express, порт 8000
+- Данные: `data/data.json` (в Docker: volume `/app/data`)
+- API публичный для UI (без Bearer); `API_TOKEN` зарезервирован для будущей защиты агентов
 
 ### Деплой
-- Docker контейнер на VDS
-- Volume: `/opt/archi-tasker/data:/app/data` (сохранение данных)
-- Порт: 127.0.0.1:8000 (локально)
-- HTTPS через Caddy: https://tasker-v2.164-215-97-87.sslip.io
-- Git репозиторий: https://github.com/e20394252-png/archi-tasker
-- Деплой через git pull + docker build
+- Docker на VDS, Caddy: https://tasker-v2.164-215-97-87.sslip.io
+- Репозиторий: https://github.com/e20394252-png/archi-tasker
 
-## Текущие проблемы
+## Исправлено (2026-03-14)
 
-### 1. Кнопки не работают на мобильных (Telegram браузер)
-**Симптомы:**
-- Кнопка "Добавить категорию" — не работает
-- Кнопка "Добавить задачу" — не работает
-- Кнопки "В работе/Выполнено" — не меняют статус
-- Кнопки редактирования — открывают модальное окно, но "Сохранить" не работает
-- Кнопки ▲▼ для сортировки — не работают
+**Кнопки UI не работали** (и на мобильных, и на десктопе): после `GET /api/state` стоял `app.use('/api', requireToken)` — все POST/PATCH/DELETE возвращали 401, фронт не шлёт токен.
 
-**Возможные причины:**
-- Telegram браузер блокирует события click/touch
-- Проблема с event bubbling из-за draggable
-- Кэширование старого JavaScript
-- Проблема с API запросами (CORS, network)
+- Убран глобальный `requireToken` с `/api`
+- Удаление категории без `confirm()` (как у задач)
 
-**Что сделано:**
-- Добавлен `draggable="false"` всем кнопкам
-- Добавлен `overflow-x: hidden` к body
-- Убран `confirm` для удаления (блокируется на мобильных)
-- Добавлено логирование ошибок через alert
-- Отключён кэш для index.html через Cache-Control
+## Проверка после деплоя
 
-### 2. Drag-and-drop не фиксируется на мобильных
-**Симптомы:**
-- Задачи можно таскать, но порядок не сохраняется
-
-**Решение:**
-- Добавлены кнопки ▲▼ для сортировки через клик
-
-### 3. Удаление задач
-**Симптомы:**
-- Кнопка ✕ не работала на мобильных
-
-**Решение:**
-- Удаление перенесено в модальное окно редактирования (красная кнопка "Удалить задачу")
-
-## Следующие шаги для отладки
-
-### 1. Проверить консоль браузера
-Открыть DevTools на мобильном (если возможно) или использовать удалённую отладку:
 ```bash
-# На компьютере подключиться к телефону через USB
-chrome://inspect
+curl -s http://127.0.0.1:8000/api/state | head -c 100
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:8000/api/categories \
+  -H "Content-Type: application/json" -d '{"name":"__ping__"}'
+# ожидается 201
 ```
 
-### 2. Добавить детальное логирование
-Добавить console.log перед каждым API вызовом:
-```javascript
-console.log('API call:', path, options);
-```
+## URL
 
-### 3. Проверить что файлы обновились на сервере
-```bash
-docker exec archi-tasker cat /app/index.html | grep "edit-modal"
-```
-
-### 4. Проверить API напрямую
-```bash
-curl -X POST https://tasker-v2.164-215-97-87.sslip.io/api/categories \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Test"}'
-```
-
-### 5. Альтернативный подход для мобильных
-Если click события не работают в Telegram браузере:
-- Использовать touchstart/touchend вместо click
-- Или сделать всё через long-press (длинное нажатие)
-- Или добавить отдельную страницу для мобильных с упрощённым UI
-
-## Версии
-
-- Текущий коммит: 7d0f7a0f14806722dff829f333dc3add5642bfca
-- URL: https://tasker-v2.164-215-97-87.sslip.io
+https://tasker-v2.164-215-97-87.sslip.io

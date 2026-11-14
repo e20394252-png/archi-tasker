@@ -1,0 +1,8 @@
+# Файлы для деплоя на VDS
+# Скопировать содержимое этой папки в /opt/archi-tasker/src на сервере
+
+index.html
+server.js
+package.json
+Dockerfile
+.dockerignore

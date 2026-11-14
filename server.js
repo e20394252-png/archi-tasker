@@ -62,21 +62,10 @@ function uid() {
   return Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
 }
 
-// Auth: Bearer token for API writes/reads from agents.
-// Frontend is open (no auth) so anyone can use the UI.
-function requireToken(req, res, next) {
-  const auth = req.headers.authorization || '';
-  if (auth === `Bearer ${API_TOKEN}`) return next();
-  res.status(401).json({ error: 'unauthorized' });
-}
-
-// ---------- Public read (frontend) ----------
+// ---------- Public API (browser UI; agents use same routes, optional Bearer later) ----------
 app.get('/api/state', (req, res) => {
   res.json(load());
 });
-
-// ---------- Agent API (token required) ----------
-app.use('/api', requireToken);
 
 app.post('/api/categories', (req, res) => {
   const name = String(req.body.name || '').trim();
