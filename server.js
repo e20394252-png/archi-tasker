@@ -77,6 +77,17 @@ app.post('/api/categories', (req, res) => {
   res.status(201).json(cat);
 });
 
+app.patch('/api/categories/:id', (req, res) => {
+  const name = String(req.body.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'name required' });
+  const state = load();
+  const cat = state.categories.find(c => c.id === req.params.id);
+  if (!cat) return res.status(404).json({ error: 'category not found' });
+  cat.name = name;
+  save(state);
+  res.json(cat);
+});
+
 app.delete('/api/categories/:id', (req, res) => {
   const state = load();
   state.categories = state.categories.filter(c => c.id !== req.params.id);

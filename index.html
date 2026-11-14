@@ -52,6 +52,14 @@
   }
   .back:hover { color: #e8eaf0; }
 
+  .cat-head {
+    display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;
+  }
+  .cat-head h1 { margin-bottom: 0; flex: 1; }
+  .cat-edit { font-size: 20px; padding: 8px 12px; margin-top: 2px; flex-shrink: 0; }
+  .cat-rename { margin-bottom: 20px; }
+  .cat-rename[hidden] { display: none !important; }
+
   .task {
     display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
     background: #2a2f3a; border-radius: 12px; padding: 18px 20px;
@@ -194,7 +202,14 @@ function renderTasks(catId) {
   const c = state.categories.find(x => x.id === catId);
   if (!c) { view = null; return renderCategories(); }
   let html = `<button class="back" id="back">← Все категории</button>
-    <h1>${esc(c.name)}<small>${c.tasks.length} задач</small></h1>`;
+    <div class="cat-head">
+      <h1>${esc(c.name)}<small>${c.tasks.length} задач</small></h1>
+      <button type="button" class="edit-btn cat-edit" id="editCatName" title="Переименовать категорию">✎</button>
+    </div>
+    <div class="add-row cat-rename" id="catRename" hidden>
+      <input type="text" id="renameCatInput" value="${esc(c.name)}" maxlength="80" placeholder="Название категории">
+      <button type="button" class="add" id="saveCatRename">Сохранить</button>
+    </div>`;
   if (c.tasks.length === 0) html += `<div class="empty">Задач пока нет — добавьте первую ниже.</div>`;
   for (const t of c.tasks) {
     const isDone = t.status === 'done';
@@ -322,6 +337,27 @@ function bind() {
 
   const back = document.getElementById('back');
   if (back) back.addEventListener('click', () => { view = null; render(); });
+
+  const editCatName = document.getElementById('editCatName');
+  const catRename = document.getElementById('catRename');
+  const renameCatInput = document.getElementById('renameCatInput');
+  const saveCatRename = document.getElementById('saveCatRename');
+  if (editCatName && catRename && renameCatInput) {
+    editCatName.addEventListener('click', () => {
+      catRename.hidden = false;
+      renameCatInput.focus();
+      renameCatInput.select();
+    });
+    const doRenameCat = async () => {
+      const name = renameCatInput.value.trim();
+      if (!name || view == null) return;
+      await api(`/categories/${view}`, { method: 'PATCH', body: JSON.stringify({ name }) });
+      catRename.hidden = true;
+      await load();
+    };
+    if (saveCatRename) saveCatRename.addEventListener('click', doRenameCat);
+    renameCatInput.addEventListener('keydown', e => { if (e.key === 'Enter') doRenameCat(); });
+  }
 
   const addCat = document.getElementById('addCat');
   if (addCat) {
